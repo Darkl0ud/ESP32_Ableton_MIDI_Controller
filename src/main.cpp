@@ -7,33 +7,6 @@ Adafruit_USBD_MIDI usb_midi;
 // and attach usb_midi as the transport.
 MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
-class button
-{
-private:
- 
-public:
-  button();
-  ~button();
-  bool bActive = false;
-
-  void Activate()
-  {
-      bActive = true;
-  }
-
-  void Deactivate()
-  {
-      bActive = false;
-  }
-};
-
-button::button()
-{
-}
-
-button::~button()
-{
-}
 
 button NewButton;
 
