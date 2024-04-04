@@ -6,8 +6,6 @@ public:
   button();
   ~button();
   bool bActive = false;
-
-  void Activate();
-  void Deactivate();
-
+  bool bInactive = true;
+  int iNote;
 };
