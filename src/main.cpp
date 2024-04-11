@@ -1,26 +1,3 @@
-//  button Button[i]; // Creates Button from button class
-//  Button[i].iNote = kbOutArr[i]; //  Sets the note for the Button to the corresponding note in note array
-//  buttonObjArr[i] = Button[i];  // Sets the Button object into the button object array
-
-//void checkPins()
-//{
-//  for (int i = 0; i < sizeof(kbOutArr) / sizeof(kbOutArr[0]); i++)
-//  {
-//    if (analogRead(kbOutArr[i]) > 0 && !buttonObjArr[i].bActive)  // If our input is greater than one and button is not already active...
-//    {
-//      MIDI.sendNoteOn(buttonObjArr[i].iNote,127,1);
-//      buttonObjArr[i].bActive = true;
-//      buttonObjArr[i].bInactive = false;
-//    }
-//    else if(digitalRead(kbOutArr[i]) == 0 && !buttonObjArr[i].bInactive)
-//    {
-//      MIDI.sendNoteOff(buttonObjArr[i].iNote,127,1);
-//      buttonObjArr[i].bActive = false;
-//      buttonObjArr[i].bInactive = true;
-//    }
-//  }
-//}
-
 #include <main.h>
 
 void scanKB()
