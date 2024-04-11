@@ -1,96 +1,91 @@
+//  button Button[i]; // Creates Button from button class
+//  Button[i].iNote = kbOutArr[i]; //  Sets the note for the Button to the corresponding note in note array
+//  buttonObjArr[i] = Button[i];  // Sets the Button object into the button object array
+
+//void checkPins()
+//{
+//  for (int i = 0; i < sizeof(kbOutArr) / sizeof(kbOutArr[0]); i++)
+//  {
+//    if (analogRead(kbOutArr[i]) > 0 && !buttonObjArr[i].bActive)  // If our input is greater than one and button is not already active...
+//    {
+//      MIDI.sendNoteOn(buttonObjArr[i].iNote,127,1);
+//      buttonObjArr[i].bActive = true;
+//      buttonObjArr[i].bInactive = false;
+//    }
+//    else if(digitalRead(kbOutArr[i]) == 0 && !buttonObjArr[i].bInactive)
+//    {
+//      MIDI.sendNoteOff(buttonObjArr[i].iNote,127,1);
+//      buttonObjArr[i].bActive = false;
+//      buttonObjArr[i].bInactive = true;
+//    }
+//  }
+//}
+
 #include <main.h>
 
-// USB MIDI object
-Adafruit_USBD_MIDI usb_midi;
-
-// Create a new instance of the Arduino MIDI Library,
-// and attach usb_midi as the transport.
-MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
-
-int buttonPinArr[4] = {41,38,35,47};  // These are the pins on MC used for keyboard note input buttons
-int buttonNoteArr[4] = {48,55,62,69}; //  These are the MIDI note values that correspond to the input buttons
-button buttonObjArr[4];  // Creates an array of 4 buttons. This must be increased as button inputs increase
-int ccPinArr[1] = {7};
-int ccNumArr[1] = {1};
-cc ccObjArr[1];
-void setupPins()
+void scanKB()
 {
-  for (int i = 0; i < sizeof(buttonPinArr) / sizeof(buttonPinArr[0]); i++)
+  int kbMIDINoteOffset = 0;
+
+  for (int OutPin : kbOutArr)  // For each kb OUTPUT pin...
   {
-    button Button[i]; // Creates Button from button class
-    Button[i].iNote = buttonNoteArr[i]; //  Sets the note for the Button to the corresponding note in note array
-    buttonObjArr[i] = Button[i];  // Sets the Button object into the button object array
+    digitalWrite(OutPin, 1);  // Set each collumn / row HIGH
+
+    for (int inPin : kbInArr)  // For each kb INPUT pin...
+    {
+      int currentKbMIDINote = kbMIDIStartNote + kbMIDINoteOffset;
+      
+      if (digitalRead(inPin) == 1 && !keyObjArr[currentKbMIDINote].bActive)
+      {
+        MIDI.sendNoteOn(currentKbMIDINote,127,1);
+        keyObjArr[currentKbMIDINote].bActive=true;
+      }
+      else if (digitalRead(inPin) == 0 && keyObjArr[currentKbMIDINote].bActive)
+      {
+      MIDI.sendNoteOff(currentKbMIDINote,127,1);
+       keyObjArr[currentKbMIDINote].bActive=false;
+      }
+
+      kbMIDINoteOffset++;
+    }
+    digitalWrite(OutPin, 0);  // Set each collumn / row LOW
   }
 }
 
-void checkPins()
+void setupKeys()
 {
-  for (int i = 0; i < sizeof(buttonPinArr) / sizeof(buttonPinArr[0]); i++)
+  int iter = 0;
+  for (key inKey : keyObjArr) // For each key in the key array...
   {
-    if (digitalRead(buttonPinArr[i]) == 1 && !buttonObjArr[i].bActive)
-    {
-      MIDI.sendNoteOn(buttonObjArr[i].iNote,127,1);
-      buttonObjArr[i].bActive = true;
-      buttonObjArr[i].bInactive = false;
-    }
-    else if(digitalRead(buttonPinArr[i]) == 0 && !buttonObjArr[i].bInactive)
-    {
-      MIDI.sendNoteOff(buttonObjArr[i].iNote,127,1);
-      buttonObjArr[i].bActive = false;
-      buttonObjArr[i].bInactive = true;
-    }
-  }
-  
-  for (int i = 0; i < sizeof(ccPinArr) / sizeof(ccPinArr[0]); i++)
-  {
-    if (digitalRead(ccPinArr[i]) == 1 && !ccObjArr[i].bActive)
-    {
-      MIDI.sendControlChange(1,127,1);
-      ccObjArr[i].bActive = true;
-      ccObjArr[i].bInactive = false;
-    }
-    else if(digitalRead(ccPinArr[i]) == 0 && !ccObjArr[i].bInactive)
-    {
-      MIDI.sendControlChange(1,0,1);
-      ccObjArr[i].bActive = false;
-      ccObjArr[i].bInactive = true;
-    }
+    inKey.iNote = inKey.iNote + iter; // Set each keys note, increasing each iteration of loop starting at middle c
+    iter++;
   }
 }
 
-float floatMap(float x, float in_min, float in_max, float out_min, float out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+void setupGPIO()  // Sets GPIO pins as INPUT or OUTPUT.
+{
+  for (int pin : kbOutArr)  // For each kb OUTPUT...
+  {
+    pinMode(pin, OUTPUT); // Set GPIO pin mode as OUTPUT
+  }
+
+  for (int pin : kbInArr)  // For each kb INPUT...
+  {
+    pinMode(pin, INPUT_PULLDOWN); // Set GPIO pin mode as INPUT
+  }
 }
 
-
-//-----------------------
-//  Setup
-//-----------------------
 void setup()
 {
+  setupGPIO();
+  setupKeys();
   usb_midi.setStringDescriptor("TinyUSB MIDI");
-  pinMode(LED_BUILTIN, OUTPUT);
-  MIDI.begin(4);                                  // Launch MIDI and listen to channel 4
-
-  pinMode(41, INPUT_PULLDOWN);
-  pinMode(38, INPUT_PULLDOWN);
-  pinMode(35, INPUT_PULLDOWN);
-  pinMode(47, INPUT_PULLDOWN);
-
+  MIDI.begin(1);                                  // Launch MIDI and listen to channel 1 
   while( !TinyUSBDevice.mounted() ) delay(1);        // wait until device mounted
-  setupPins();
-
 }
 
-//-----------------------
-//  Loop
-//-----------------------
 void loop()
 {
-  checkPins();
   MIDI.read();
-
-  int temp = analogRead(7);
-  int weeed = floatMap(temp,0,4095,0,127);
-  Serial.println(weeed);
+  scanKB();
 }
